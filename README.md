@@ -17,3 +17,87 @@ dependencies {
 	        implementation 'com.github.mistletoe5215:CoroutineExtension:v1.0.0'
 	}
  ```  
+ ### UseAge
+  
+  #### [使用promise then 实现流式请求](https://github.com/mistletoe5215/CoroutineExtension/blob/master/CoroutineWrapper/src/main/java/com/mistletoe/coroutinewrapper/CoroutineExtension.kt)
+  - 项目使用retrofit v2.6 时
+   
+  ```kotlin
+    data class ResponseDataModel(
+          var code:Int = 0,
+          var message:String?=null,
+          var data:String?=null 
+    )
+ ```
+    
+   ```kotlin
+  @BaseUrl("www.github.com")
+    interface ApiService {
+     @GET("getListData")
+     suspend fun foo(@Query param:String):ResponseDataModel
+     }
+  ```
+
+```kotlin
+     lifecycleOwner.promise{
+            //请求接口
+            mApiService.foo(param)
+       }.then({
+           mResponseDataModel ->
+            //返回结果，更新UI
+      }){ e ->
+           //捕获异常并处理 
+         }
+```
+  - 项目使用retrofit v2.3 时
+
+```kotlin
+  @BaseUrl("www.github.com")
+    interface ApiService {
+     @GET("getListData")
+     fun foo(@Query param:String):Deferred<ResponseDataModel>
+     }
+  ```  
+  
+```kotlin
+     lifecycleOwner.promise{
+            //请求接口
+            mApiService.foo(param)
+       }.then({
+           mResponseDataModel ->
+            //返回结果，更新UI
+      }){ e ->
+           //捕获异常并处理 
+         }
+```  
+
+ #### [使用FlowCountDownTimer实现一个可随时暂停恢复的倒计时](https://github.com/mistletoe5215/CoroutineExtension/blob/master/CoroutineWrapper/src/main/java/com/mistletoe/coroutinewrapper/FlowCountDownTimer.kt)
+ 
+ ```kotlin
+  //实现一个3s的倒计时
+ 
+  val  mFlowCountDownTimer = FlowCountDownTimer.Builder().from(3)
+                  .to(0)
+                  .interval(1000L)
+                  .withUnit(TimeUnit.SECONDS)
+                  .create()
+              mFlowCountDownTimer?.apply {
+                          watchStart {
+                              //观察开始动作
+                          }
+                          watchCountDown {
+                              currentCount ->
+                             //观察倒计时
+                          }
+                          watchComplete {
+                             //观察倒计时结束
+                          }
+                      }?.start()
+   //希望暂停时， 
+   mFlowCountDownTimer?.pause()
+   //希望恢复倒计时时，
+   mFlowCountDownTimer?.resume()
+
+``` 
+   
+ 
