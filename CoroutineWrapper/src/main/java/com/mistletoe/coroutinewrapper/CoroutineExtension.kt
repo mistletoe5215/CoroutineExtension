@@ -54,6 +54,8 @@ val background = newFixedThreadPoolContext(Runtime.getRuntime().availableProcess
  *  }.then{
  *      mResponseDataModel ->
  *      //do ui update
+ *  }catch {
+ *  // ui thread  handle  exception
  *  }
  */
 @ObsoleteCoroutinesApi
@@ -78,11 +80,13 @@ fun <T> LifecycleOwner.promise(p: suspend  () -> T): Pair<LifecycleOwner, Deferr
  *      @GET("getListData")
  *      fun foo(@Query param:String):Deferred<ResponseDataModel>
  *  }
- *  lifecycleOwner.promise{
+ *  lifecycleOwner promise{
  *       mApiService.foo(param)
- *  }.then{
+ *  } then{
  *      mResponseDataModel ->
  *      //do ui update
+ *  } catch {
+ *     // ui thread  handle  exception
  *  }
  */
 
@@ -90,7 +94,7 @@ fun <T> LifecycleOwner.promise(p: suspend  () -> T): Pair<LifecycleOwner, Deferr
 @Deprecated("use it in retrofit 2.3 with coroutine factory interceptor")
 @SuppressLint("RestrictedApi")
 @Keep
-fun <T> LifecycleOwner.promise(p: () -> Deferred<T>): Pair<LifecycleOwner, Deferred<T>> {
+infix fun <T> LifecycleOwner.promise(p: () -> Deferred<T>): Pair<LifecycleOwner, Deferred<T>> {
     val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG,"Exception in promise consumed!:${throwable.message}")
     }
@@ -107,10 +111,10 @@ fun <T> LifecycleOwner.promise(p: () -> Deferred<T>): Pair<LifecycleOwner, Defer
 //协程实现js风格的then
 @SuppressLint("RestrictedApi")
 @Keep
-fun <T> Pair<LifecycleOwner, Deferred<T>>.then(block: (T) -> Unit, exceptionBlock: (e: Exception) -> Unit) {
+infix fun <T> Pair<LifecycleOwner, Deferred<T>>.then(block: (T) -> Unit) {
+    //这里只收集不处理
     val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG,"Exception in then consumed!:${throwable.message}")
-        exceptionBlock.invoke(Exception(throwable.message))
     }
     val job = CoroutineScope(Dispatchers.Main+ exceptionHandler).launch {
         block.invoke(this@then.second.await())
@@ -120,7 +124,19 @@ fun <T> Pair<LifecycleOwner, Deferred<T>>.then(block: (T) -> Unit, exceptionBloc
         this@then.first.lifecycle.addObserver(JobLifecycleListener(job))
     }
 }
-
+//协程实现js风格的catch
+@SuppressLint("RestrictedApi")
+@Keep
+infix fun <T> Deferred<T>.catch(block: (throwable: Throwable) -> Unit){
+    invokeOnCompletion {
+        it?.let {
+            //处理异常
+            ArchTaskExecutor.getMainThreadExecutor().execute{
+                block.invoke(it)
+            }
+        }
+    }
+}
 //协程实现js风格的setTimeOut
 @Keep
 fun setTimeOut(dispatcher: CoroutineDispatcher = Dispatchers.Main, time: Long, block: () -> Unit): Job {

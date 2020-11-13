@@ -70,7 +70,26 @@ dependencies {
            //捕获异常并处理 
          }
 ```  
+ #### [使用setTimeOut 执行延时任务](https://github.com/mistletoe5215/CoroutineExtension/blob/master/CoroutineWrapper/src/main/java/com/mistletoe/coroutinewrapper/CoroutineExtension.kt)
+ 
+ ```kotlin
 
+    val handle = setTimeOut(time = 2000L){
+          //do delay task
+    }
+    // cancel task
+    handle.cancel()
+```
+ #### [使用setInterval 执行定时循环周期任务](https://github.com/mistletoe5215/CoroutineExtension/blob/master/CoroutineWrapper/src/main/java/com/mistletoe/coroutinewrapper/CoroutineExtension.kt)
+ 
+ ```kotlin
+    val handle = setInterval(Dispatchers.IO, 3000L){
+       //do loop task
+    }
+    // cancel task
+    handle.cancel()
+```
+ 
  #### [使用FlowCountDownTimer实现一个可随时暂停恢复的倒计时](https://github.com/mistletoe5215/CoroutineExtension/blob/master/CoroutineWrapper/src/main/java/com/mistletoe/coroutinewrapper/FlowCountDownTimer.kt)
  
  ```kotlin
@@ -99,5 +118,22 @@ dependencies {
    mFlowCountDownTimer?.resume()
 
 ``` 
+
+### 更新
+
+   #### v1.0.1 
    
+ - 现在支持中缀表达式进行[promise then catch 的流式调用](https://github.com/mistletoe5215/CoroutineExtension/blob/master/CoroutineWrapper/src/main/java/com/mistletoe/coroutinewrapper/CoroutineExtension.kt)
  
+```kotlin
+        lifecycleOwner promise{
+                //请求接口
+                mApiService.foo(param)
+           } then {
+               mResponseDataModel ->
+                //返回结果，更新UI
+          } catch { e ->
+               //捕获异常并在主线程处理异常
+          }
+```
+  

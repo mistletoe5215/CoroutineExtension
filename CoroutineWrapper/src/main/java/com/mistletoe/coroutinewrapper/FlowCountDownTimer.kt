@@ -97,15 +97,15 @@ class FlowCountDownTimer internal constructor(
             TimeUnit.HOURS -> 60 * 60
             else -> 1
         }
-        if (currentTimeInUnit == end - 1 * factor) {
+        if (mJobState == JobState.COMPLETE) {
             Log.e(TAG, "already completed")
             return this
         }
         job = CoroutineScope(dispatcher).launch(start = CoroutineStart.LAZY) {
             (currentTimeInUnit * factor downTo end * factor)
                 .asFlow()
-                .map { it - 1 * factor }
-                .onEach { delay(interval * factor) }
+                .map { it - 1  }
+                .onEach { delay(interval) }
                 .flowOn(Dispatchers.IO)
                 .onStart {
                     mJobState = JobState.RESUME
@@ -119,7 +119,7 @@ class FlowCountDownTimer internal constructor(
                 }.collect {
                     mJobState = JobState.DISPATCH
                     mCountDownCallback?.invoke(it)
-                    if (it == end - 1 * factor) {
+                    if (it == end - 1) {
                         mJobState = JobState.COMPLETE
                         mCompleteCallback?.invoke()
                     }
@@ -156,13 +156,7 @@ class FlowCountDownTimer internal constructor(
         }
 
         fun create(): FlowCountDownTimer {
-            val factor = when (mTimeUnit) {
-                TimeUnit.SECONDS -> 1
-                TimeUnit.MINUTES -> 60
-                TimeUnit.HOURS -> 60 * 60
-                else -> 1
-            }
-            if (mStart < mEnd - 1 * factor) {
+            if (mStart < mEnd - 1) {
                 throw IllegalArgumentException("start count must be bigger than end count")
             }
             if (mInterval < 0L) {
