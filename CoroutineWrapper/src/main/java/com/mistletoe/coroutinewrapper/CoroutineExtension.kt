@@ -111,7 +111,7 @@ infix fun <T> LifecycleOwner.promise(p: () -> Deferred<T>): Pair<LifecycleOwner,
 //协程实现js风格的then
 @SuppressLint("RestrictedApi")
 @Keep
-infix fun <T> Pair<LifecycleOwner, Deferred<T>>.then(block: (T) -> Unit) {
+infix fun <T> Pair<LifecycleOwner, Deferred<T>>.then(block: (T) -> Unit):Deferred<T> {
     //这里只收集不处理
     val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG,"Exception in then consumed!:${throwable.message}")
@@ -123,6 +123,7 @@ infix fun <T> Pair<LifecycleOwner, Deferred<T>>.then(block: (T) -> Unit) {
     ArchTaskExecutor.getMainThreadExecutor().execute {
         this@then.first.lifecycle.addObserver(JobLifecycleListener(job))
     }
+    return this@then.second
 }
 //协程实现js风格的catch
 @SuppressLint("RestrictedApi")
@@ -179,3 +180,4 @@ fun <T> doBackgroundTask(task: () -> Deferred<T>) {
         bgJob = null
     }
 }
+
