@@ -176,8 +176,18 @@ fun <T> doBackgroundTask(task: () -> Deferred<T>) {
     bgJob = CoroutineScope(Dispatchers.IO+exceptionHandler).launch {
         val result = task.invoke().await()
         Log.d(TAG, "BackgroundTask result:$result")
+    }
+    /**
+     * Disposes a specified [handle] when this job is complete.
+     * This is a shortcut for the following code with slightly more efficient implementation (one fewer object created).
+     * ```
+     * invokeOnCompletion { handle.dispose() }
+     * ```
+     */
+    bgJob?.invokeOnCompletion {
         bgJob?.cancel()
         bgJob = null
+        Log.d(TAG, "BackgroundTask dispose self")
     }
 }
 
