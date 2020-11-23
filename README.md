@@ -136,4 +136,42 @@ dependencies {
                //捕获异常并在主线程处理异常
           }
 ```
-  
+  #### v1.1.0
+
+  -  支持使用zip表达式进行[多个retrofit请求合并](https://github.com/mistletoe5215/CoroutineExtension/blob/master/CoroutineWrapper/src/main/java/com/mistletoe/coroutinewrapper/FlowExtension.kt)
+
+```kotlin
+ data class ResponseDataModel1(
+          var code:Int = 0,
+          var message:String?=null,
+          var data:String?=null
+    )
+
+ data class ResponseDataModel2(
+          var code:Int = 0,
+          var message:String?=null,
+          var data:String?=null
+    )
+ @BaseUrl("www.github.com")
+ interface ApiService {
+         @GET("getListData")
+         fun foo1(@Query param:String):Deferred<ResponseDataModel1>
+         @GET("getImageData")
+         fun foo2(@Query param:String):Deferred<ResponseDataModel2>
+  }
+ zip(mService.foo1c(param), mService.foo2(param))
+                .bindLifecycle(activity)
+                .onCompletion {
+                    val resultList = it.awaitAll()
+                    //ensure get all result
+                    if(resultList.size == 2){
+                        Log.d("Mistletoe",(resultList[0] as ResponseDataModel1)?.data.toString() +"\n"+
+                            (resultList[1] as ResponseDataModel2)?.data.toString()
+                        )
+                    }
+                }.catch {
+                    Log.e("Mistletoe",it.message)
+                }
+
+
+```

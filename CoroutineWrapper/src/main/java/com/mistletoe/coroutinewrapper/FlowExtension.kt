@@ -95,23 +95,6 @@ interface FlowDelegate<T> {
     fun collect(block: suspend (T) -> Unit): FlowDelegate<T>
     fun onCompletion(block: suspend (List<T>) -> Unit): FlowDelegate<T>
 }
-
-/**
- * 一个合并请求的例子
- * zip(mService.getPopularVideoListAsync(0, param), mService.getCarVideoViewAsync(0, 0))
- *     .bindLifecycle(activity).onCompletion {
- *            val resultList = it.awaitAll()
- *            //ensure get all result
- *            if(resultList.size == 2){
- *           Log.d("Mistletoe",resultList[0].convertTo<ListVideoResponseModel>()?.data.toString() +"\n"+
- *            resultList[0].convertTo<ViewResponseModel>()?.data.toString())
- *            }}
- *       .catch {
- *        Log.e("Mistletoe",it.message)
- *        }
- *
- */
-
 //zip retrofit tasks
 inline fun <reified T> zip(vararg tasks: Deferred<T>): Flow<Deferred<T>> = tasks.asFlow()
 
