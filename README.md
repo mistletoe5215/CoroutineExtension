@@ -159,7 +159,7 @@ dependencies {
          @GET("getImageData")
          fun foo2(@Query param:String):Deferred<ResponseDataModel2>
   }
- zip(mService.foo1c(param), mService.foo2(param))
+ zip(mService.foo1(param), mService.foo2(param))
                 .bindLifecycle(activity)
                 .onCompletion {
                     val resultList = it.awaitAll()
