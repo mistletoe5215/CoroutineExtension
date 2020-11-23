@@ -117,12 +117,13 @@ class FlowCountDownTimer internal constructor(
                 .onCompletion {
                     cancel()
                 }.collect {
-                    mJobState = JobState.DISPATCH
-                    mCountDownCallback?.invoke(it)
                     if (it == end - 1) {
                         mJobState = JobState.COMPLETE
                         mCompleteCallback?.invoke()
+                        return@collect
                     }
+                    mJobState = JobState.DISPATCH
+                    mCountDownCallback?.invoke(it)
                     mRemainTimeInUnit = it
                 }
         }
