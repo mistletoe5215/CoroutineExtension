@@ -121,21 +121,12 @@ dependencies {
 
 ### 更新
 
-   #### v1.0.1 
-   
- - 现在支持中缀表达式进行[promise then catch 的流式调用](https://github.com/mistletoe5215/CoroutineExtension/blob/master/CoroutineWrapper/src/main/java/com/mistletoe/coroutinewrapper/CoroutineExtension.kt)
- 
-```kotlin
-        lifecycleOwner promise{
-                //请求接口
-                mApiService.foo(param)
-           } then {
-               mResponseDataModel ->
-                //返回结果，更新UI
-          } catch { e ->
-               //捕获异常并在主线程处理异常
-          }
-```
+  #### v1.2.0
+  
+  - 对网络请求场景使用超时回收策略调度器`MCoroutineDispatcher`
+
+  - 删除部分无必要父协程Scope创建
+  
   #### v1.1.0
 
   -  支持使用zip表达式进行[多个retrofit请求合并](https://github.com/mistletoe5215/CoroutineExtension/blob/master/CoroutineWrapper/src/main/java/com/mistletoe/coroutinewrapper/FlowExtension.kt)
@@ -174,4 +165,19 @@ dependencies {
                 }
 
 
+```
+ #### v1.0.1 
+   
+ - 现在支持中缀表达式进行[promise then catch 的流式调用](https://github.com/mistletoe5215/CoroutineExtension/blob/master/CoroutineWrapper/src/main/java/com/mistletoe/coroutinewrapper/CoroutineExtension.kt)
+ 
+```kotlin
+        lifecycleOwner promise{
+                //请求接口
+                mApiService.foo(param)
+           } then {
+               mResponseDataModel ->
+                //返回结果，更新UI
+          } catch { e ->
+               //捕获异常并在主线程处理异常
+          }
 ```

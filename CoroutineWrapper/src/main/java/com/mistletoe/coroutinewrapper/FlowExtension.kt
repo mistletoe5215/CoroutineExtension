@@ -2,6 +2,7 @@ package com.mistletoe.coroutinewrapper
 
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import com.mistletoe.coroutinewrapper.Config.FDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -16,7 +17,6 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.newFixedThreadPoolContext
 
 /**
  * 给flow wrapper一个lifecycle
@@ -32,7 +32,7 @@ class FlowObserver<T>(lifecycleOwner: LifecycleOwner, private val flow: Flow<T>)
     private var job: Job? = null
 
     @ObsoleteCoroutinesApi
-    private var mFlowScheduler: CoroutineDispatcher = newFixedThreadPoolContext(Runtime.getRuntime().availableProcessors() * 2, "flow")
+    private var mFlowScheduler: CoroutineDispatcher = FDispatcher
     private var mConsumeScheduler: CoroutineDispatcher = Dispatchers.Main
     private var taskResult: MutableList<T> = mutableListOf()
     private var mCatchBlock: ((Throwable) -> Unit)? = null

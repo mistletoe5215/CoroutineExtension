@@ -8,18 +8,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.OnLifecycleEvent
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.ObsoleteCoroutinesApi
-import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.newFixedThreadPoolContext
+import com.mistletoe.coroutinewrapper.Config.PDispatcher
+import kotlinx.coroutines.*
 
 /**
  * Created by mistletoe
@@ -35,8 +25,6 @@ internal class JobLifecycleListener(private val job: Job) : LifecycleObserver {
         }
     }
 }
-@ObsoleteCoroutinesApi
-val background = newFixedThreadPoolContext(Runtime.getRuntime().availableProcessors() * 2, "promise")
 //协程实现js风格的promise
 
 // 如果是 retrofit 网络请求 v2.6 调用该方法
@@ -64,7 +52,7 @@ fun <T> LifecycleOwner.promise(p: suspend  () -> T): Pair<LifecycleOwner, Deferr
     val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG,"Exception in promise consumed!:${throwable.message}")
     }
-    val deferred = CoroutineScope(Dispatchers.IO+exceptionHandler).async(context = background, start = CoroutineStart.LAZY){
+    val deferred = CoroutineScope(PDispatcher+exceptionHandler).async(context = PDispatcher, start = CoroutineStart.LAZY){
         p.invoke()
     }
     // use ArchTaskExecutor.getMainThreadExecutor() the same with paging LivePagedListBuilder create() method
@@ -96,16 +84,27 @@ fun <T> LifecycleOwner.promise(p: suspend  () -> T): Pair<LifecycleOwner, Deferr
 @Keep
 infix fun <T> LifecycleOwner.promise(p: () -> Deferred<T>): Pair<LifecycleOwner, Deferred<T>> {
     val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        Log.e(TAG,"Exception in promise consumed!:${throwable.message}")
+        Log.e(TAG, "Exception in promise consumed!:${throwable.message}")
     }
-    val deferred = CoroutineScope(Dispatchers.IO+exceptionHandler).async(context = background, start = CoroutineStart.LAZY){
+    val lifecycleScope = CoroutineScope(PDispatcher + exceptionHandler)
+    val deferred = lifecycleScope.async (start = CoroutineStart.LAZY) {
         p.invoke().await()
     }
-    // use ArchTaskExecutor.getMainThreadExecutor() the same with paging LivePagedListBuilder create() method
-    ArchTaskExecutor.getMainThreadExecutor().execute {
-        lifecycle.addObserver(JobLifecycleListener(deferred))
+    val observer = lifecycleScope.coroutineContext[Job]?.let { JobLifecycleListener(it) }
+    observer?.let {
+        // add lifecycle observer
+        ArchTaskExecutor.getMainThreadExecutor().execute {
+            lifecycle.addObserver(it)
+        }
+        // remove lifecycle observer  to avoid useless memory increase
+        deferred.invokeOnCompletion { _ ->
+            ArchTaskExecutor.getMainThreadExecutor().execute {
+                lifecycle.removeObserver(it)
+            }
+        }
     }
-    return Pair(this, deferred)
+
+    return this to deferred
 }
 
 //协程实现js风格的then
@@ -114,80 +113,74 @@ infix fun <T> LifecycleOwner.promise(p: () -> Deferred<T>): Pair<LifecycleOwner,
 infix fun <T> Pair<LifecycleOwner, Deferred<T>>.then(block: (T) -> Unit):Deferred<T> {
     //这里只收集不处理
     val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        Log.e(TAG,"Exception in then consumed!:${throwable.message}")
+        Log.e(TAG, "Exception in then consumed!:${throwable.message}")
     }
-    val job = CoroutineScope(Dispatchers.Main+ exceptionHandler).launch {
+    CoroutineScope(Dispatchers.Main + exceptionHandler).launch {
         block.invoke(this@then.second.await())
     }
-    //use ArchTaskExecutor.getMainThreadExecutor() the same with paging LivePagedListBuilder create() method
-    ArchTaskExecutor.getMainThreadExecutor().execute {
-        this@then.first.lifecycle.addObserver(JobLifecycleListener(job))
-    }
-    return this@then.second
+    return this.second
 }
 //协程实现js风格的catch
 @SuppressLint("RestrictedApi")
 @Keep
-infix fun <T> Deferred<T>.catch(block: (throwable: Throwable) -> Unit){
+infix fun <T> Deferred<T>.catch(block: (throwable: Throwable) -> Unit): Deferred<T> {
     invokeOnCompletion {
         it?.let {
             //处理异常
-            ArchTaskExecutor.getMainThreadExecutor().execute{
+            ArchTaskExecutor.getMainThreadExecutor().execute {
                 block.invoke(it)
             }
         }
     }
+    return this
 }
+var globalTimeOutScope:CoroutineScope? = null
 //协程实现js风格的setTimeOut
 @Keep
-fun setTimeOut(dispatcher: CoroutineDispatcher = Dispatchers.Main, time: Long, block: () -> Unit): Job {
+fun setTimeOut(dispatcher: CoroutineDispatcher = Dispatchers.Main, time: Long, block: () -> Unit): CoroutineScope? {
     val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG,"Exception in setTimeOut consumed!:${throwable.message}")
     }
-    return CoroutineScope(dispatcher+exceptionHandler).launch {
+    if(globalTimeOutScope ==null){
+        globalTimeOutScope = CoroutineScope(dispatcher+exceptionHandler)
+    }
+    globalTimeOutScope?.launch {
         delay(time)
         block.invoke()
     }
+    return  globalTimeOutScope
 }
-
+var globalIntervalScope:CoroutineScope? = null
 //协程实现js风格的setInterval
 @Keep
-fun setInterval(dispatcher: CoroutineDispatcher = Dispatchers.IO, time: Long, block: () -> Unit): Job {
+fun setInterval(dispatcher: CoroutineDispatcher = Dispatchers.Default, time: Long, block: () -> Unit): CoroutineScope? {
     val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG,"Exception in setInterval consumed!:${throwable.message}")
     }
-    return CoroutineScope(dispatcher + exceptionHandler).launch {
+    if(globalIntervalScope == null){
+        globalIntervalScope = CoroutineScope(dispatcher + exceptionHandler)
+    }
+    globalIntervalScope?.launch {
         while (true) {
             delay(time)
             block.invoke()
         }
     }
+    return globalIntervalScope
 }
-
-//do task in background,don't care result
 @Keep
-internal var bgJob: Job? = null
-
-@Keep
-fun <T> doBackgroundTask(task: () -> Deferred<T>) {
+fun <T> doCancelableJob(task: () -> Deferred<T>) {
     val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        Log.e(TAG,"Exception in doBackgroundTask consumed!:${throwable.message}")
+        Log.e(TAG, "Exception in doBackgroundTask consumed!:${throwable.message}")
     }
-    bgJob = CoroutineScope(Dispatchers.IO+exceptionHandler).launch {
+    val scope = CoroutineScope(Dispatchers.IO + exceptionHandler)
+    scope.launch {
         val result = task.invoke().await()
-        Log.d(TAG, "BackgroundTask result:$result")
+        Log.d(TAG, "task result:$result")
     }
-    /**
-     * Disposes a specified [handle] when this job is complete.
-     * This is a shortcut for the following code with slightly more efficient implementation (one fewer object created).
-     * ```
-     * invokeOnCompletion { handle.dispose() }
-     * ```
-     */
-    bgJob?.invokeOnCompletion {
-        bgJob?.cancel()
-        bgJob = null
-        Log.d(TAG, "BackgroundTask dispose self")
+    scope.coroutineContext[Job]?.invokeOnCompletion {
+        scope.cancel()
+        Log.d(TAG, "task dispose self")
     }
 }
 
