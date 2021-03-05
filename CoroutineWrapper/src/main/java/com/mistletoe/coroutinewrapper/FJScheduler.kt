@@ -2,11 +2,11 @@ package com.mistletoe.coroutinewrapper
 
 import android.annotation.SuppressLint
 import android.util.Log
-import kotlinx.coroutines.ExecutorCoroutineDispatcher
-import kotlinx.coroutines.Runnable
+import kotlinx.coroutines.*
 import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.RejectedExecutionException
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -19,8 +19,9 @@ import kotlin.coroutines.CoroutineContext
  * on 2020/12/28
  **/
 //thread name:aForkJoinWorkerThread
-val  FJCoroutineDispatcher = FCoroutineDispatcherImpl()
+val FJCoroutineDispatcher = FCoroutineDispatcherImpl()
 val parallels = Runtime.getRuntime().availableProcessors() - 1
+
 class FCoroutineDispatcherImpl : ExecutorCoroutineDispatcher() {
     @Volatile
     private var pool: Executor? = null
@@ -28,13 +29,14 @@ class FCoroutineDispatcherImpl : ExecutorCoroutineDispatcher() {
         get() = pool ?: getOrCreateFJPoolSync()
 
     override fun close() {
-        (executor as ExecutorService).shutdown()
+        executor.asCoroutineDispatcher().cancel()
     }
 
     override fun dispatch(context: CoroutineContext, block: Runnable) {
         try {
-            (pool ?: getOrCreateFJPoolSync()).execute(block)
-        } catch (e: Exception) {
+            executor.asCoroutineDispatcher().dispatch(context, block)
+        } catch (e: RejectedExecutionException) {
+            cancelJobOnRejection(context, e)
             Log.e(TAG, "error execute coroutine task")
         }
     }
@@ -46,4 +48,11 @@ class FCoroutineDispatcherImpl : ExecutorCoroutineDispatcher() {
 
     @Synchronized
     private fun getOrCreateFJPoolSync(): Executor = pool ?: createPool().also { pool = it }
+
+    private fun cancelJobOnRejection(
+        context: CoroutineContext,
+        exception: RejectedExecutionException
+    ) {
+        context.cancel(CancellationException("The task was rejected", exception))
+    }
 }
