@@ -1,5 +1,9 @@
 package com.mistletoe.coroutinewrapper
 
+/**
+ * Created by mistletoe
+ * on 2021/3/5
+ **/
 import android.annotation.SuppressLint
 import android.util.Log
 import com.mistletoe.coroutinewrapper.Config.KEEP_ALIVE
@@ -16,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.CoroutineContext
 
 /**
- * fork from CommonPool && ThreadPoolDispatcher
+ * 网络请求用的，用完超时销毁
  * create recycle thread pool dispatcher
  * Created by mistletoe
  * on 2020/12/28
@@ -59,3 +63,5 @@ internal class MCoroutineDispatcher(private val nThreads: Int, private val name:
     @Synchronized
     private fun getOrCreatePoolSync(): Executor = pool ?: createPool().also { pool = it }
 }
+
+
