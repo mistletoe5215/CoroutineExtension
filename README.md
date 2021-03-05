@@ -17,6 +17,74 @@ dependencies {
 	        implementation 'com.github.mistletoe5215:CoroutineExtension:v1.0.0'
 	}
  ```  
+ 
+ ### 更新
+ 
+  #### v1.2.1
+  
+  - 增加FJCoroutineDispatcher调度器`FJCoroutineDispatcher`,可以与`Dispatchers.IO`做比较
+
+  #### v1.2.0
+  
+  - 对网络请求场景使用超时回收策略调度器`MCoroutineDispatcher`
+
+  - 删除部分无必要父协程Scope创建
+  
+  #### v1.1.0
+
+  -  支持使用zip表达式进行[多个retrofit请求合并](https://github.com/mistletoe5215/CoroutineExtension/blob/master/CoroutineWrapper/src/main/java/com/mistletoe/coroutinewrapper/FlowExtension.kt)
+
+```kotlin
+ data class ResponseDataModel1(
+          var code:Int = 0,
+          var message:String?=null,
+          var data:String?=null
+    )
+
+ data class ResponseDataModel2(
+          var code:Int = 0,
+          var message:String?=null,
+          var data:String?=null
+    )
+ @BaseUrl("www.github.com")
+ interface ApiService {
+         @GET("getListData")
+         fun foo1(@Query param:String):Deferred<ResponseDataModel1>
+         @GET("getImageData")
+         fun foo2(@Query param:String):Deferred<ResponseDataModel2>
+  }
+ zip(mService.foo1(param), mService.foo2(param))
+                .bindLifecycle(activity)
+                .onCompletion {
+                    val resultList = it.awaitAll()
+                    //ensure get all result
+                    if(resultList.size == 2){
+                        Log.d("Mistletoe",(resultList[0] as ResponseDataModel1)?.data.toString() +"\n"+
+                            (resultList[1] as ResponseDataModel2)?.data.toString()
+                        )
+                    }
+                }.catch {
+                    Log.e("Mistletoe",it.message)
+                }
+
+
+```
+ #### v1.0.1 
+   
+ - 现在支持中缀表达式进行[promise then catch 的流式调用](https://github.com/mistletoe5215/CoroutineExtension/blob/master/CoroutineWrapper/src/main/java/com/mistletoe/coroutinewrapper/CoroutineExtension.kt)
+ 
+```kotlin
+        lifecycleOwner promise{
+                //请求接口
+                mApiService.foo(param)
+           } then {
+               mResponseDataModel ->
+                //返回结果，更新UI
+          } catch { e ->
+               //捕获异常并在主线程处理异常
+          }
+```
+ 
  ### UseAge
   
   #### [使用promise then 实现流式请求](https://github.com/mistletoe5215/CoroutineExtension/blob/master/CoroutineWrapper/src/main/java/com/mistletoe/coroutinewrapper/CoroutineExtension.kt)
@@ -118,66 +186,3 @@ dependencies {
    mFlowCountDownTimer?.resume()
 
 ``` 
-
-### 更新
-
-  #### v1.2.0
-  
-  - 对网络请求场景使用超时回收策略调度器`MCoroutineDispatcher`
-
-  - 删除部分无必要父协程Scope创建
-  
-  #### v1.1.0
-
-  -  支持使用zip表达式进行[多个retrofit请求合并](https://github.com/mistletoe5215/CoroutineExtension/blob/master/CoroutineWrapper/src/main/java/com/mistletoe/coroutinewrapper/FlowExtension.kt)
-
-```kotlin
- data class ResponseDataModel1(
-          var code:Int = 0,
-          var message:String?=null,
-          var data:String?=null
-    )
-
- data class ResponseDataModel2(
-          var code:Int = 0,
-          var message:String?=null,
-          var data:String?=null
-    )
- @BaseUrl("www.github.com")
- interface ApiService {
-         @GET("getListData")
-         fun foo1(@Query param:String):Deferred<ResponseDataModel1>
-         @GET("getImageData")
-         fun foo2(@Query param:String):Deferred<ResponseDataModel2>
-  }
- zip(mService.foo1(param), mService.foo2(param))
-                .bindLifecycle(activity)
-                .onCompletion {
-                    val resultList = it.awaitAll()
-                    //ensure get all result
-                    if(resultList.size == 2){
-                        Log.d("Mistletoe",(resultList[0] as ResponseDataModel1)?.data.toString() +"\n"+
-                            (resultList[1] as ResponseDataModel2)?.data.toString()
-                        )
-                    }
-                }.catch {
-                    Log.e("Mistletoe",it.message)
-                }
-
-
-```
- #### v1.0.1 
-   
- - 现在支持中缀表达式进行[promise then catch 的流式调用](https://github.com/mistletoe5215/CoroutineExtension/blob/master/CoroutineWrapper/src/main/java/com/mistletoe/coroutinewrapper/CoroutineExtension.kt)
- 
-```kotlin
-        lifecycleOwner promise{
-                //请求接口
-                mApiService.foo(param)
-           } then {
-               mResponseDataModel ->
-                //返回结果，更新UI
-          } catch { e ->
-               //捕获异常并在主线程处理异常
-          }
-```
