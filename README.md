@@ -14,7 +14,7 @@
 	}
  
 dependencies {
-	        implementation 'com.github.mistletoe5215:CoroutineExtension:v1.0.0'
+	        implementation 'com.github.mistletoe5215:CoroutineExtension:v1.2.3'
 	}
  ```  
  
