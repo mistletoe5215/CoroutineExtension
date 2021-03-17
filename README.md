@@ -20,6 +20,12 @@ dependencies {
  
  ### 更新
  
+  #### v1.3.0
+  
+  - 增加`View.acquireObservableScope()`获取一个跟随窗口移除时取消的协程域
+  
+  - 增加`Context.acquireLifecycleScope()`从只有context的地方获取一个和lifecycle绑定的协程域，协程block执行完即解绑lifecycle
+ 
   #### v1.2.3
   
   - `打包问题修复`revert 使用Jitpack ci 的gradle版本
