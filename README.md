@@ -20,6 +20,14 @@ dependencies {
  
  ### 更新
  
+  #### v1.2.3
+  
+  - `打包问题修复`revert 使用Jitpack ci 的gradle版本
+  
+  #### v1.2.2
+   
+  - 增加CustomMainDispatcher，解决1.3.2版本主协程调度器crash问题 
+ 
   #### v1.2.1
   
   - 增加FJCoroutineDispatcher调度器`FJCoroutineDispatcher`,可以与`Dispatchers.IO`做比较
