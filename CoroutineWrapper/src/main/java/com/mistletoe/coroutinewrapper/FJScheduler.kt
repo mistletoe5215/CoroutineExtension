@@ -14,7 +14,7 @@ import kotlin.coroutines.CoroutineContext
  * Corresponding to Dispatchers.IO
  * ForkJoinPool 是根据Divide-and-Conquer Algorithm 分治算法通过一个双端工作队列，对荷满任务窃取执行而设计的优化线程池
  * 每个Work线程都有个自己的双端工作队列，当通过LIFO的方式从自己的队尾将任务执行完后，
- * 将会通过LIFO的方式去其他的Work线程从它们的工作队列队头偷一个任务执行
+ * 将会通过FIFO的方式去其他的Work线程从它们的工作队列队头偷一个任务执行
  * Created by mistletoe
  * on 2020/12/28
  **/
